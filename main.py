@@ -76,14 +76,16 @@ chunk_start = 0
 ph_hmm_values = np.full((11), -np.inf, np.float64)
 ph_hmm_values_2 = np.full((11), -np.inf, np.float64)
 
+
 while chunk_start < len(lhs):
     chunk_end = min(chunk_start + CHUNK_SIZE, len(lhs))
     print(str(chunk_start) + "\t" + str(chunk_end))
     if chunk_start >= len(lhs) - 32:
         break
 
-    x = []
-    y = []
+    max_value = []
+    max_index = []
+    max_label = []
     s = 0
     for i in np.arange(chunk_start+(2*STEP), chunk_end-STEP, STEP):
         ph_hmm_values[0] = get_hmm(lhs[chunk_start:i], NULA)[-1]
@@ -111,13 +113,19 @@ while chunk_start < len(lhs):
         ph_hmm_values_2[10] = get_hmm(lhs[i:chunk_end], PAU)[-1]
 
         v = np.max(ph_hmm_values) + np.max(ph_hmm_values_2)
-        if i == chunk_start+STEP:
+        max_label.append(np.argmax(ph_hmm_values))
+        if i == chunk_start+(2*STEP):
             s = v
-        x.append(v)
-        y.append(i)
-    max_split = y[x.index(np.max(x))]
-    if s == np.max(x):
-        break
+        max_value.append(v)
+        max_index.append(i)
+    max_split = max_index[max_value.index(np.max(max_value))]
+    print(max_label[max_value.index(np.max(max_value))])
+    if s == np.max(max_value):
+        if chunk_start + 80 < len(lhs):
+            chunk_start += 20
+        else:
+            print("sucpiscios break")
+            break
 
     chunk_start = max_split
 
