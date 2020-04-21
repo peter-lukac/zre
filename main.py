@@ -72,15 +72,49 @@ lhs = np.log(new_lhs)
 CHUNK_SIZE = 120
 STEP = 3
 chunk_start = 0
-
+"""
 ph_hmm_values = np.full((11), -np.inf, np.float64)
 ph_hmm_values_2 = np.full((11), -np.inf, np.float64)
+"""
 
+
+def get_max_hmm(lhs, start, mid, stop, only_start=False):
+    start_values = np.full((11), -np.inf, np.float64)
+    end_values = np.full((11), -np.inf, np.float64)
+
+    start_values[0] = get_hmm(lhs[start:mid], NULA)[-1]
+    start_values[1] = get_hmm(lhs[start:mid], JEDNA)[-1]
+    start_values[2] = get_hmm(lhs[start:mid], DVA)[-1]
+    start_values[3] = get_hmm(lhs[start:mid], TRI)[-1]
+    start_values[4] = get_hmm(lhs[start:mid], CTYRI)[-1]
+    start_values[5] = get_hmm(lhs[start:mid], PJET)[-1]
+    start_values[6] = get_hmm(lhs[start:mid], SEST)[-1]
+    start_values[7] = get_hmm(lhs[start:mid], SEDM)[-1]
+    start_values[8] = get_hmm(lhs[start:mid], OSM)[-1]
+    start_values[9] = get_hmm(lhs[start:mid], DEVJET)[-1]
+    start_values[10] = get_hmm(lhs[start:mid], PAU)[-1]
+
+    if only_start is True:
+        return start_values
+    
+    end_values[0] = get_hmm(lhs[mid:stop], NULA)[-1]
+    end_values[1] = get_hmm(lhs[mid:stop], JEDNA)[-1]
+    end_values[2] = get_hmm(lhs[mid:stop], DVA)[-1]
+    end_values[3] = get_hmm(lhs[mid:stop], TRI)[-1]
+    end_values[4] = get_hmm(lhs[mid:stop], CTYRI)[-1]
+    end_values[5] = get_hmm(lhs[mid:stop], PJET)[-1]
+    end_values[6] = get_hmm(lhs[mid:stop], SEST)[-1]
+    end_values[7] = get_hmm(lhs[mid:stop], SEDM)[-1]
+    end_values[8] = get_hmm(lhs[mid:stop], OSM)[-1]
+    end_values[9] = get_hmm(lhs[mid:stop], DEVJET)[-1]
+    end_values[10] = get_hmm(lhs[mid:stop], PAU)[-1]
+
+    return start_values, end_values
 
 while chunk_start < len(lhs):
     chunk_end = min(chunk_start + CHUNK_SIZE, len(lhs))
     print(str(chunk_start) + "\t" + str(chunk_end))
-    if chunk_start >= len(lhs) - 32:
+    if chunk_start >= len(lhs) - 20:
         break
 
     max_value = []
@@ -88,29 +122,7 @@ while chunk_start < len(lhs):
     max_label = []
     s = 0
     for i in np.arange(chunk_start+(2*STEP), chunk_end-STEP, STEP):
-        ph_hmm_values[0] = get_hmm(lhs[chunk_start:i], NULA)[-1]
-        ph_hmm_values[1] = get_hmm(lhs[chunk_start:i], JEDNA)[-1]
-        ph_hmm_values[2] = get_hmm(lhs[chunk_start:i], DVA)[-1]
-        ph_hmm_values[3] = get_hmm(lhs[chunk_start:i], TRI)[-1]
-        ph_hmm_values[4] = get_hmm(lhs[chunk_start:i], CTYRI)[-1]
-        ph_hmm_values[5] = get_hmm(lhs[chunk_start:i], PJET)[-1]
-        ph_hmm_values[6] = get_hmm(lhs[chunk_start:i], SEST)[-1]
-        ph_hmm_values[7] = get_hmm(lhs[chunk_start:i], SEDM)[-1]
-        ph_hmm_values[8] = get_hmm(lhs[chunk_start:i], OSM)[-1]
-        ph_hmm_values[9] = get_hmm(lhs[chunk_start:i], DEVJET)[-1]
-        ph_hmm_values[10] = get_hmm(lhs[chunk_start:i], PAU)[-1]
-
-        ph_hmm_values_2[0] = get_hmm(lhs[i:chunk_end], NULA)[-1]
-        ph_hmm_values_2[1] = get_hmm(lhs[i:chunk_end], JEDNA)[-1]
-        ph_hmm_values_2[2] = get_hmm(lhs[i:chunk_end], DVA)[-1]
-        ph_hmm_values_2[3] = get_hmm(lhs[i:chunk_end], TRI)[-1]
-        ph_hmm_values_2[4] = get_hmm(lhs[i:chunk_end], CTYRI)[-1]
-        ph_hmm_values_2[5] = get_hmm(lhs[i:chunk_end], PJET)[-1]
-        ph_hmm_values_2[6] = get_hmm(lhs[i:chunk_end], SEST)[-1]
-        ph_hmm_values_2[7] = get_hmm(lhs[i:chunk_end], SEDM)[-1]
-        ph_hmm_values_2[8] = get_hmm(lhs[i:chunk_end], OSM)[-1]
-        ph_hmm_values_2[9] = get_hmm(lhs[i:chunk_end], DEVJET)[-1]
-        ph_hmm_values_2[10] = get_hmm(lhs[i:chunk_end], PAU)[-1]
+        ph_hmm_values, ph_hmm_values_2 = get_max_hmm(lhs, chunk_start, i, chunk_end)
 
         v = np.max(ph_hmm_values) + np.max(ph_hmm_values_2)
         max_label.append(np.argmax(ph_hmm_values))
@@ -118,14 +130,21 @@ while chunk_start < len(lhs):
             s = v
         max_value.append(v)
         max_index.append(i)
+
     max_split = max_index[max_value.index(np.max(max_value))]
     print(max_label[max_value.index(np.max(max_value))])
     if s == np.max(max_value):
+        chunk_start += (2*STEP)
+        """
         if chunk_start + 80 < len(lhs):
             chunk_start += 20
         else:
             print("sucpiscios break")
+            print(get_hmm(lhs[chunk_start:len(lhs)], DVA)[-1])
+            print(get_hmm(lhs[chunk_start:len(lhs)], PAU)[-1])
+            print(max_split)
             break
+        """
 
     chunk_start = max_split
 
