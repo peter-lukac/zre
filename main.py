@@ -10,12 +10,13 @@ NULA =  ['n','u','l','a']
 JEDNA = ['j','e','d','n','a:']
 DVA =   ['d','v','a']
 DVJE =  ['d','v','j','e']
-TRI =   ['P_','i:']
+TRI =   ['t','P_','i:']
 CTYRI = ['t_S','t','i','z','i:']
 PJET =  ['p','j','e','t']
 SEST =  ['S','e','s','t']
 SEDM =  ['s','e','d','m']
 OSM =   ['o','s','m']
+OSUM =  ['o','s','u','m']
 DEVJET = ['d','e','v','j','e','t']
 
 with open('dicos/phonemes') as f:
@@ -58,7 +59,7 @@ def get_hmm_2(lhs, ph):
     return states
 
 
-lhs = readhtk('eval/a30009b1.lik')
+lhs = readhtk('dev/a30004b1.lik')
 #lhs = lhs[0:210]
 
 new_lhs = np.zeros((lhs.shape[0], len(PHONEMES)))
@@ -84,13 +85,13 @@ def get_max_hmm(lhs, start, mid, stop, only_start=False):
 
     start_values[0] = get_hmm(lhs[start:mid], NULA)[-1]
     start_values[1] = get_hmm(lhs[start:mid], JEDNA)[-1]
-    start_values[2] = get_hmm(lhs[start:mid], DVA)[-1]
+    start_values[2] = np.max([get_hmm(lhs[start:mid], DVA)[-1], get_hmm(lhs[start:mid], DVJE)[-1]])
     start_values[3] = get_hmm(lhs[start:mid], TRI)[-1]
     start_values[4] = get_hmm(lhs[start:mid], CTYRI)[-1]
     start_values[5] = get_hmm(lhs[start:mid], PJET)[-1]
     start_values[6] = get_hmm(lhs[start:mid], SEST)[-1]
     start_values[7] = get_hmm(lhs[start:mid], SEDM)[-1]
-    start_values[8] = get_hmm(lhs[start:mid], OSM)[-1]
+    start_values[8] = np.max([get_hmm(lhs[start:mid], OSM)[-1], get_hmm(lhs[start:mid], OSUM)[-1]])
     start_values[9] = get_hmm(lhs[start:mid], DEVJET)[-1]
     start_values[10] = get_hmm(lhs[start:mid], PAU)[-1]
 
@@ -99,13 +100,13 @@ def get_max_hmm(lhs, start, mid, stop, only_start=False):
     
     end_values[0] = get_hmm(lhs[mid:stop], NULA)[-1]
     end_values[1] = get_hmm(lhs[mid:stop], JEDNA)[-1]
-    end_values[2] = get_hmm(lhs[mid:stop], DVA)[-1]
+    end_values[2] = np.max([get_hmm(lhs[mid:stop], DVA)[-1], get_hmm(lhs[mid:stop], DVJE)[-1]])
     end_values[3] = get_hmm(lhs[mid:stop], TRI)[-1]
     end_values[4] = get_hmm(lhs[mid:stop], CTYRI)[-1]
     end_values[5] = get_hmm(lhs[mid:stop], PJET)[-1]
     end_values[6] = get_hmm(lhs[mid:stop], SEST)[-1]
     end_values[7] = get_hmm(lhs[mid:stop], SEDM)[-1]
-    end_values[8] = get_hmm(lhs[mid:stop], OSM)[-1]
+    end_values[8] = np.max([get_hmm(lhs[mid:stop], OSM)[-1], get_hmm(lhs[mid:stop], OSUM)[-1]])
     end_values[9] = get_hmm(lhs[mid:stop], DEVJET)[-1]
     end_values[10] = get_hmm(lhs[mid:stop], PAU)[-1]
 
@@ -113,7 +114,7 @@ def get_max_hmm(lhs, start, mid, stop, only_start=False):
 
 while chunk_start < len(lhs):
     chunk_end = min(chunk_start + CHUNK_SIZE, len(lhs))
-    print(str(chunk_start) + "\t" + str(chunk_end))
+    #print(str(chunk_start) + "\t" + str(chunk_end))
     if chunk_start >= len(lhs) - 20:
         break
 
@@ -132,7 +133,13 @@ while chunk_start < len(lhs):
         max_index.append(i)
 
     max_split = max_index[max_value.index(np.max(max_value))]
-    print(max_label[max_value.index(np.max(max_value))])
+    if max_label[max_value.index(np.max(max_value))] == 10:
+        #print("pause")
+        #print(max_split - chunk_start)
+        if max_split - chunk_start >= 70:
+            print(np.argmax(get_max_hmm(lhs, chunk_start, max_split, 0, True)[0:10]))
+    else:
+        print(max_label[max_value.index(np.max(max_value))])
     if s == np.max(max_value):
         chunk_start += (2*STEP)
         """
