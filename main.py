@@ -1,23 +1,31 @@
+"""
+HMM decoder for number phoneme likelyhood array decoding
+author: Peter Lukac
+login: xlukac11
+April 2020
+"""
+
 import numpy as np
 from htk import readhtk
 import matplotlib.pyplot as plt
+import sys
 
 P_05 = np.log(0.5)
 
 PAU = ['pau']
-
 NULA =  ['n','u','l','a']
 JEDNA = ['j','e','d','n','a:']
 DVA =   ['d','v','a']
 DVJE =  ['d','v','j','e']
-TRI =   ['t','P_','i:']
-CTYRI = ['t_S','t','i','z','i:']
+TRI =   ['t','P_','i']
+CTYRI = ['t_S','t','i','z','i']
 PJET =  ['p','j','e','t']
 SEST =  ['S','e','s','t']
 SEDM =  ['s','e','d','m']
 OSM =   ['o','s','m']
 OSUM =  ['o','s','u','m']
 DEVJET = ['d','e','v','j','e','t']
+
 
 with open('dicos/phonemes') as f:
     PHONEMES = f.readlines()
@@ -44,39 +52,6 @@ def get_hmm(lhs, ph):
         states[0] = states[0] + P_05 + col[PHONEMES.index(ph[0])]
 
     return states
-
-
-def get_hmm_2(lhs, ph):
-    states = np.full((len(lhs), len(ph)), -np.inf, np.float64)
-    states[0,0] = lhs[0,PHONEMES.index(ph[0])]
-
-    for i, col in enumerate(lhs[1:], start=1):
-        states[i,0] = states[i-1,0] + P_05 + col[PHONEMES.index(ph[0])]
-        for j in range(1, len(ph)):
-            p = col[PHONEMES.index(ph[j])]
-            states[i, j] = np.max([states[i-1, j] + P_05 + p, states[i-1, j-1] + P_05 + p])
-
-    return states
-
-
-lhs = readhtk('dev/a30004b1.lik')
-#lhs = lhs[0:210]
-
-new_lhs = np.zeros((lhs.shape[0], len(PHONEMES)))
-for i in range(46):
-    new_lhs.T[i] = np.sum(lhs.T[i*3:(i*3)+2], axis=0)
-
-#new_lhs = np.concatenate((new_lhs[:56], new_lhs[69:129], new_lhs[144:195]))
-lhs = np.log(new_lhs)
-
-
-CHUNK_SIZE = 120
-STEP = 3
-chunk_start = 0
-"""
-ph_hmm_values = np.full((11), -np.inf, np.float64)
-ph_hmm_values_2 = np.full((11), -np.inf, np.float64)
-"""
 
 
 def get_max_hmm(lhs, start, mid, stop, only_start=False):
@@ -112,9 +87,27 @@ def get_max_hmm(lhs, start, mid, stop, only_start=False):
 
     return start_values, end_values
 
+
+if len(sys.argv) != 2:
+    print("Usage: main.py FILE")
+    exit(1)
+
+lhs = readhtk(sys.argv[1])
+
+new_lhs = np.zeros((lhs.shape[0], len(PHONEMES)))
+for i in range(46):
+    new_lhs.T[i] = np.sum(lhs.T[i*3:(i*3)+2], axis=0)
+
+lhs = np.log(new_lhs)
+
+
+CHUNK_SIZE = 120
+STEP = 3
+chunk_start = 0
+
+
 while chunk_start < len(lhs):
     chunk_end = min(chunk_start + CHUNK_SIZE, len(lhs))
-    #print(str(chunk_start) + "\t" + str(chunk_end))
     if chunk_start >= len(lhs) - 20:
         break
 
@@ -134,27 +127,14 @@ while chunk_start < len(lhs):
 
     max_split = max_index[max_value.index(np.max(max_value))]
     if max_label[max_value.index(np.max(max_value))] == 10:
-        #print("pause")
-        #print(max_split - chunk_start)
         if max_split - chunk_start >= 70:
-            print(np.argmax(get_max_hmm(lhs, chunk_start, max_split, 0, True)[0:10]))
+            print(np.argmax(get_max_hmm(lhs, chunk_start, max_split, 0, True)[0:10]), end = '')
+            print(" ", end = '')
     else:
-        print(max_label[max_value.index(np.max(max_value))])
+        print(max_label[max_value.index(np.max(max_value))], end = '')
+        print(" ", end = '')
     if s == np.max(max_value):
         chunk_start += (2*STEP)
-        """
-        if chunk_start + 80 < len(lhs):
-            chunk_start += 20
-        else:
-            print("sucpiscios break")
-            print(get_hmm(lhs[chunk_start:len(lhs)], DVA)[-1])
-            print(get_hmm(lhs[chunk_start:len(lhs)], PAU)[-1])
-            print(max_split)
-            break
-        """
-
     chunk_start = max_split
 
-plot_lhs(new_lhs)
-#plt.plot(new_lhs[:,31])
-#plt.show()
+print()
